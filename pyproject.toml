@@ -1,0 +1,37 @@
+[project]
+name = "enterprise-knowledge-assistant"
+version = "0.1.0"
+description = "Local enterprise knowledge assistant with MCP, RAG, and audit logging"
+requires-python = ">=3.11"
+dependencies = [
+    # MCP Python SDK — exposes tools to Claude Desktop and other MCP clients
+    "mcp[cli]>=1.2.0",
+    # Anthropic SDK — Claude API for question answering
+    "anthropic>=0.40.0",
+    # Voyage AI — embeddings (Anthropic's recommended embeddings partner)
+    "voyageai>=0.2.3",
+    # ChromaDB — local vector database for semantic search
+    "chromadb>=0.5.0",
+    # Environment variable management — keeps secrets out of source code
+    "python-dotenv>=1.0.0",
+    # PDF text extraction
+    "pypdf>=4.0.0",
+]
+
+[project.scripts]
+# CLI entry points
+ingest = "scripts.ingest:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src", "scripts", "mcp-servers"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.3.0",
+]
