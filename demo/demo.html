@@ -62,7 +62,7 @@
   .audit-entry { border: 1px solid #1a1a1a; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
   .audit-time { font-size: 9px; color: #333; }
   .audit-query { font-size: 10px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .audit-source { font-size: 9px; color: #00ff8844; }
+  .sample-q { color: #2a6a4a; cursor: pointer; display: block; } .sample-q:hover { color: #00ff88; } .audit-source { font-size: 9px; color: #00ff8844; }
 </style>
 </head>
 <body>
@@ -80,7 +80,7 @@
 
 <div id="main">
   <div id="chat-panel">
-    <div id="chat"></div>
+    <div id="chat"><div class="msg"><div class="msg-label assistant">// ASSISTANT</div><div class="msg-text" style="color:#444;font-size:12px;line-height:2">Try asking:<br><span class="sample-q" onclick="askSample(this)">→ What does our AI policy say about data classification?</span><br><span class="sample-q" onclick="askSample(this)">→ What are the data handling rules for confidential documents?</span><br><span class="sample-q" onclick="askSample(this)">→ How should we handle PII in AI systems?</span></div></div></div>
     <div id="input-area">
       <input id="question" placeholder="Ask a question about your internal documents..." autocomplete="off" />
       <button id="send">SEND</button>
@@ -178,6 +178,7 @@ async function sendQuestion() {
   }
 }
 
+function askSample(el) { document.getElementById("question").value = el.textContent.replace("→ ",""); sendQuestion(); }
 document.getElementById('send').addEventListener('click', sendQuestion);
 document.getElementById('question').addEventListener('keydown', e => {
   if (e.key === 'Enter') sendQuestion();
