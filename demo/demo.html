@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Knowledge Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #c9d1d9; font-family: 'IBM Plex Mono', monospace; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  #header { padding: 12px 24px; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; gap: 16px; background: #0a0a0a; }
+  #header .dot { width: 8px; height: 8px; border-radius: 50%; background: #00ff88; box-shadow: 0 0 6px #00ff88; }
+  #header h1 { font-size: 12px; letter-spacing: 3px; color: #e0e0e0; font-weight: 600; }
+  #header .badges { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  #header .badge { font-size: 10px; color: #555; letter-spacing: 1px; }
+  #header .badge.green { color: #00ff88; }
+  #header .version { font-size: 10px; color: #333; border: 1px solid #222; padding: 2px 8px; }
+
+  #main { display: flex; flex: 1; overflow: hidden; }
+
+  #chat-panel { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #1a1a1a; }
+  #chat { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  #chat::-webkit-scrollbar { width: 4px; }
+  #chat::-webkit-scrollbar-track { background: #0a0a0a; }
+  #chat::-webkit-scrollbar-thumb { background: #222; }
+
+  .msg { display: flex; flex-direction: column; gap: 6px; }
+  .msg-label { font-size: 10px; letter-spacing: 2px; font-weight: 600; }
+  .msg-label.user { color: #555; }
+  .msg-label.assistant { color: #00aaff; }
+  .msg-text { font-size: 13px; line-height: 1.7; color: #c9d1d9; }
+  .msg-text.user { color: #888; font-style: italic; }
+  .msg-source { font-size: 10px; color: #333; margin-top: 4px; }
+  .msg-source span { color: #444; }
+
+  .loading-dots { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .loading-dots span { width: 4px; height: 4px; border-radius: 50%; background: #333; animation: pulse 1.2s infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%,80%,100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+  #input-area { padding: 16px 24px; border-top: 1px solid #1a1a1a; display: flex; gap: 12px; align-items: center; }
+  #question { flex: 1; background: transparent; border: none; border-bottom: 1px solid #222; color: #c9d1d9; padding: 8px 0; font-family: 'IBM Plex Mono', monospace; font-size: 13px; outline: none; }
+  #question::placeholder { color: #333; }
+  #question:focus { border-bottom-color: #00ff88; }
+  #send { background: #00ff88; color: #000; border: none; padding: 8px 20px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 1px; cursor: pointer; transition: background 0.15s; }
+  #send:hover { background: #00cc66; }
+
+  #footer { padding: 8px 24px; border-top: 1px solid #111; display: flex; gap: 24px; background: #080808; }
+  #footer span { font-size: 10px; color: #2a2a2a; letter-spacing: 1px; }
+  #footer span b { color: #3a3a3a; }
+
+  #audit-panel { width: 280px; display: flex; flex-direction: column; background: #080808; }
+  #audit-header { padding: 12px 16px; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
+  #audit-header span { font-size: 10px; letter-spacing: 2px; color: #333; }
+  #audit-count { font-size: 10px; color: #555; }
+  #audit-log { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  #audit-log::-webkit-scrollbar { width: 2px; }
+  #audit-log::-webkit-scrollbar-thumb { background: #1a1a1a; }
+  .audit-empty { font-size: 11px; color: #222; text-align: center; margin-top: 40px; line-height: 1.8; }
+  .audit-entry { border: 1px solid #1a1a1a; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+  .audit-time { font-size: 9px; color: #333; }
+  .audit-query { font-size: 10px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .audit-source { font-size: 9px; color: #00ff8844; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="dot"></div>
+  <h1>ENTERPRISE KNOWLEDGE ASSISTANT</h1>
+  <div class="badges">
+    <span class="badge green">● LOCAL</span>
+    <span class="badge">·</span>
+    <span class="badge">DATA PRIVATE</span>
+    <span class="version">MCP v1.26</span>
+  </div>
+</div>
+
+<div id="main">
+  <div id="chat-panel">
+    <div id="chat"></div>
+    <div id="input-area">
+      <input id="question" placeholder="Ask a question about your internal documents..." autocomplete="off" />
+      <button id="send">SEND</button>
+    </div>
+  </div>
+
+  <div id="audit-panel">
+    <div id="audit-header">
+      <span>AUDIT LOG</span>
+      <span id="audit-count">0 entries</span>
+    </div>
+    <div id="audit-log">
+      <div class="audit-empty">No queries logged yet.<br>All interactions will appear here<br>with timestamp and source attribution.</div>
+    </div>
+  </div>
+</div>
+
+<div id="footer">
+  <span>DOCS_DIR: <b>/Users/giulia/Desktop/test-docs</b></span>
+  <span>MODEL: <b>claude-sonnet-4</b></span>
+</div>
+
+<script>
+const SERVER = 'http://localhost:8000/query';
+const chat = document.getElementById('chat');
+const auditLog = document.getElementById('audit-log');
+const auditCount = document.getElementById('audit-count');
+let entryCount = 0;
+
+function addMessage(role, text, source) {
+  const div = document.createElement('div');
+  div.className = 'msg';
+  const label = document.createElement('div');
+  label.className = 'msg-label ' + role;
+  label.textContent = role === 'user' ? '// YOU' : '// ASSISTANT';
+  const content = document.createElement('div');
+  content.className = 'msg-text ' + role;
+  content.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  div.appendChild(label);
+  div.appendChild(content);
+  if (source && role === 'assistant') {
+    const s = document.createElement('div');
+    s.className = 'msg-source';
+    s.innerHTML = '<span>Source: ' + source + '</span>';
+    div.appendChild(s);
+  }
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function addAuditEntry(query, source) {
+  const empty = auditLog.querySelector('.audit-empty');
+  if (empty) empty.remove();
+  entryCount++;
+  auditCount.textContent = entryCount + (entryCount === 1 ? ' entry' : ' entries');
+  const entry = document.createElement('div');
+  entry.className = 'audit-entry';
+  const now = new Date();
+  entry.innerHTML = `
+    <div class="audit-time">${now.toISOString().replace('T',' ').slice(0,19)}</div>
+    <div class="audit-query">${query}</div>
+    ${source ? '<div class="audit-source">src: ' + source + '</div>' : ''}
+  `;
+  auditLog.insertBefore(entry, auditLog.firstChild);
+}
+
+async function sendQuestion() {
+  const q = document.getElementById('question').value.trim();
+  if (!q) return;
+  document.getElementById('question').value = '';
+  addMessage('user', q);
+
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'msg';
+  loadingDiv.innerHTML = '<div class="msg-label assistant">// ASSISTANT</div><div class="loading-dots"><span></span><span></span><span></span></div>';
+  chat.appendChild(loadingDiv);
+  chat.scrollTop = chat.scrollHeight;
+
+  try {
+    const res = await fetch(SERVER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q })
+    });
+    const data = await res.json();
+    chat.removeChild(loadingDiv);
+    const answer = data.answer?.answer || data.answer || 'No answer returned.';
+    const source = data.source || (data.answer?.sources || []).join(', ');
+    addMessage('assistant', answer, source);
+    addAuditEntry(q, source);
+  } catch(e) {
+    chat.removeChild(loadingDiv);
+    addMessage('assistant', 'Error: ' + e.message);
+  }
+}
+
+document.getElementById('send').addEventListener('click', sendQuestion);
+document.getElementById('question').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendQuestion();
+});
+</script>
+</body>
+</html>
